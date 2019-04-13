@@ -1,0 +1,84 @@
+---
+
+- name: Deploy hosts template
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+
+- name: CentOS/RedHat Install yum dependencies
+  yum:
+    name:
+      - policycoreutils-python
+      - python2-pip
+      - nfs-utils
+    state: latest
+  when: ansible_os_family == 'RedHat'
+
+- name: Debian - Install apt dependencies
+  apt:
+    name:
+      - nfs-common
+    state: latest
+  when: ansible_os_family == 'Debian'
+
+- name: Detect firewalld
+  stat:
+    path: /usr/sbin/firewalld
+  register: firewalld_present
+  changed_when: False
+  ignore_errors: True
+  when: ansible_os_family == 'RedHat'
+
+- name: Detect ufw
+  stat:
+    path: /usr/sbin/ufw
+  register: ufw_present
+  changed_when: False
+  ignore_errors: True
+  when: ansible_os_family == 'Debian'
+
+- name: CentOS/RedHat - Open firewall ports
+  firewalld:
+    port: "{{ item.port }}/{{ item.proto }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items:
+    - { port: "22", proto: "tcp" }
+    - { port: "2181", proto: "tcp" }
+    - { port: "2888", proto: "tcp" }
+    - { port: "3888", proto: "tcp" }
+    - { port: "4369", proto: "tcp" }
+    - { port: "5672", proto: "tcp" }
+    - { port: "9090", proto: "tcp" }
+    - { port: "15039-15047", proto: "tcp" }
+  when: ansible_os_family == 'RedHat' and firewalld_present.stat.exists
+
+- name: Debian - Open firewall ports
+  ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  with_items:
+    - { port: "22", proto: "tcp" }
+    - { port: "2181", proto: "tcp" }
+    - { port: "2888", proto: "tcp" }
+    - { port: "3888", proto: "tcp" }
+    - { port: "4369", proto: "tcp" }
+    - { port: "5672", proto: "tcp" }
+    - { port: "9090", proto: "tcp" }
+    - { port: "15039:15047", proto: "tcp" }
+  when: ansible_os_family == 'Debian' and ufw_present.stat.exists
+
+- name: Debian - Allow enable UFW
+  ufw:
+    state: enabled
+  when: ansible_os_family == 'Debian' and ufw_present.stat.exists
+
+- name: Allow Datos IO user to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^{{ rdio_user }}'
+    line: '{{ rdio_user }} ALL=NOPASSWD: /bin/chmod, /bin/chown, /sbin/modprobe, /bin/mount, /sbin/sysctl'
+    validate: 'visudo -cf %s'

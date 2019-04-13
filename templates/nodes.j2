@@ -1,0 +1,1 @@
+{% for host in groups['rx'] %}{{ hostvars[host]['ansible_hostname'] }}{% if not loop.last %} {% endif %}{% endfor %}

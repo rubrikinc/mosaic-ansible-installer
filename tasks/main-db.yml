@@ -1,0 +1,6 @@
+---
+
+- name: Include Cassandra OS secific tasks
+  include_tasks: "db-os-prep.yml"
+  when: ("'cassdb' in group_names") or ("'mongodb' in group_names")
+  tags: dbosprep
