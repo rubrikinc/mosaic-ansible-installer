@@ -1,0 +1,284 @@
+---
+ 
+- name: Add Rubrik Datos IO group
+  group:
+    name: "rdio"
+    state: present
+  register: new_group
+
+- name: Add Rubrik DatosIO User
+  user:
+    name: "{{ rdio_user }}"
+    shell: /bin/bash
+    groups: rdio
+    append: yes
+    state: present
+    createhome: yes
+    home: "{{ rdio_user_home }}"
+    uid: "{{ rdio_user_uid }}"
+  register: new_user
+
+- name: Set RDIO user password
+  user:
+    name: "{{ rdio_user }}"
+    password: "{{ rdio_user_pass | password_hash('sha512') }}"
+  when: new_user is changed
+
+- name: Create ~/.ssh directory 
+  file:
+    path: "{{ rdio_user_home }}/.ssh"
+    state: directory
+    mode: 0700
+  become_user: "{{ rdio_user }}"
+
+- name: Create SSH Keys
+  command: ssh-keygen -b 4096 -t rsa -N "" -f "{{ rdio_user_home }}/.ssh/id_rsa"
+  args:
+    creates: "{{ rdio_user_home }}/.ssh/id_rsa"
+  register: create_keys
+  become_user: "{{ rdio_user }}"
+  when: inventory_hostname == groups['rx'][0]
+
+
+- name: Grab ssh keys
+  fetch:
+    src: "{{ item }}"
+    dest: files/
+    flat: yes
+  with_items:
+    - "{{ rdio_user_home }}/.ssh/id_rsa"
+    - "{{ rdio_user_home }}/.ssh/id_rsa.pub"
+  when: 
+    - inventory_hostname == groups['rx'][0]
+    - create_keys is changed
+
+- name: Copy SSH keys
+  copy:
+    src: "files/{{ item.file }}"
+    dest: /home/{{ rdio_user }}/.ssh/{{ item.file }}
+    owner: "{{ rdio_user }}"
+    group: "{{ rdio_user }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { file: 'id_rsa', mode: '0400' }
+    - { file: 'id_rsa.pub', mode: '0600' }
+
+- name: Add SSH authorized key
+  authorized_key:
+    user: "{{ rdio_user }}"
+    state: present
+    key: "{{ item }}"
+  with_file:
+     - files/id_rsa.pub
+  become_user: "{{ rdio_user }}"
+  loop_control:
+    label: "Updated authorized_hosts."
+
+- name: Create known_hosts file
+  file:
+    path: ~/.ssh/known_hosts
+    mode: 0644
+    state: touch
+  become_user: "{{ rdio_user }}"
+
+- name: Deploy SSH Pubkey Template
+  template:
+    src: known_hosts.j2
+    dest: /home/{{ rdio_user }}/.ssh/known_hosts
+    owner: "{{ rdio_user }}"
+    group: "{{ rdio_user }}"
+    mode: 0644
+
+- name: CentOS/Redhat - Modify pam limits
+  pam_limits:
+    domain: "{{ item.domain }}"
+    limit_type: "{{ item.type }}"
+    limit_item: "{{ item.item }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { domain: '*', type: 'hard', item: 'nproc', value: '64000'}
+    - { domain: '*', type: 'soft', item: 'nproc', value: '64000'}
+    - { domain: '*', type: 'hard', item: 'nofile', value: '64000'}
+    - { domain: '*', type: 'soft', item: 'nofile', value: '64000'}
+  register: pam_mod
+  when: ansible_os_family == 'RedHat'
+
+- name: Debian - Modify pam limits
+  pam_limits:
+    domain: "{{ item.domain }}"
+    limit_type: "{{ item.type }}"
+    limit_item: "{{ item.item }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { domain: 'root', type: 'hard', item: 'nproc', value: '64000'}
+    - { domain: 'root', type: 'soft', item: 'nproc', value: '64000'}
+    - { domain: 'root', type: 'hard', item: 'nofile', value: '64000'}
+    - { domain: 'root', type: 'soft', item: 'nofile', value: '64000'}
+    - { domain: '*', type: 'hard', item: 'nproc', value: '64000'}
+    - { domain: '*', type: 'soft', item: 'nproc', value: '64000'}
+    - { domain: '*', type: 'hard', item: 'nofile', value: '64000'}
+    - { domain: '*', type: 'soft', item: 'nofile', value: '64000'}
+  register: pam_mod
+  when: ansible_os_family == 'Debian'
+
+- name: CentOS/RedHat - Reload sysctl if pam limits were modified
+  shell: sysctl --system
+  when: (ansible_os_family == 'RedHat') and pam_mod is changed
+
+- name: Debian - Reboot if pam limits were changed
+  shell: "sleep 5 && reboot"
+  async: 1
+  poll: 0
+  when: ansible_os_family == 'Debian' and pam_mod is changed
+
+- name: Wait for the reboot to complete
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 5
+    timeout: 300
+  when: pam_mod is changed
+
+- name: CentOS/RedHat - Modify nproc configuration
+  lineinfile:
+    path: /etc/security/limits.d/20-nproc.conf
+    line: "{{ item }}"
+  with_items:
+    - '* hard nproc 64000'
+    - '* soft nproc 64000'
+  when: ansible_os_family == 'RedHat'
+
+- name: Deploy RecoverX Node Template
+  template:
+    src: nodes.j2
+    dest: /home/{{ rdio_user }}/nodes
+    owner: "{{ rdio_user }}"
+    group: "{{ rdio_user }}"
+  become: true
+  become_user: "{{ rdio_user }}"
+  when: inventory_hostname == groups['rx'][0]
+
+- name: Detect and register Nodes
+  slurp:
+    src: /home/{{ rdio_user }}/nodes
+  register: nodes
+  when: inventory_hostname == groups['rx'][0]
+
+- name: Detect existing RecoverX installation
+  stat:
+    path: /home/{{ rdio_user }}/datosinstall
+  register: rdio_dir
+  changed_when: False
+  ignore_errors: True
+
+- name: Deploy RDIO release - {{ rdio_install_file }}
+  unarchive:
+    src: "{{ rdio_install_file }}"
+    dest: /home/{{ rdio_user }}/
+    owner: "{{ rdio_user }}"
+    group: "{{ rdio_user }}"
+    list_files: true
+  become: true
+  become_user: "{{ rdio_user }}"
+  register: deploy_files
+  when: 
+    - inventory_hostname == groups['rx'][0]
+    - not rdio_dir.stat.exists
+
+- name: Install RecoverX - {{ rdio_install_file }}
+  shell: >
+    ./install_datos
+    -i {{ nodes['content'] | b64decode }}
+    -t /home/{{ rdio_user }}/datosinstall
+    --skip-eula-check
+  args:
+    chdir: /home/{{ rdio_user }}/{{ deploy_files.files[0] }}
+  become: true
+  become_user: "{{ rdio_user }}"
+  register: rdio_install
+  when:
+    - not rdio_dir.stat.exists
+    - inventory_hostname == groups['rx'][0]
+
+- name: Deploy RecoverX init script
+  copy:
+    src: /home/{{ rdio_user }}/datosinstall/datos-server
+    dest: /etc/init.d/datos-server
+    remote_src: true
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enable RecoverX service
+  systemd:
+    name: datos-server
+    enabled: yes
+    state: started
+
+- name: Initialize RecoverX subsystem
+  file:
+    path: /var/lock/subsys/datos-server
+    owner: root
+    group: root
+    state: touch
+
+- name: Change permissions of fusermount
+  file:
+    path: /home/{{ rdio_user }}/datosinstall/lib/fuse/bin/fusermount
+    owner: root
+    mode: "u+s"
+  become: root
+  when: 
+    - mongodb
+
+- name: Load fuse module
+  modprobe:
+    name: fuse
+    state: present
+  become: root
+  when: 
+    - mongodb
+
+- name: Mount fuse
+  mount:
+    path: "/sys/fs/fuse/connections"
+    src: "fusectl"
+    fstype: fusectl
+    state: mounted
+  when: 
+    - mongodb
+
+- name: Create NFS Mount point
+  file:
+    path: "{{ rdio_nfs_mount }}"
+    owner: "{{ rdio_user }}"
+    group: rdio
+    state: directory
+    mode: 0755
+  when: 
+    - rdio_nfs
+
+- name: Mount NFS storage
+  mount:
+    path: "{{ rdio_nfs_mount }}"
+    src: "{{ rdio_nfs_target }}:{{ rdio_nfs_export }}"
+    fstype: nfs
+    opts: nfsvers=3,auto,hard,actimeo=0,lookupcache=none,noac
+    state: mounted
+  when: 
+    - rdio_nfs
+
+- name: Update hosts tables with MongoDB hostnames
+  debug:
+    msg: | 
+      -- Manual Step -- [For MongoDB Only] Mongos node hostnames need to be resolvable from the Rubrik Datos IO server. 
+      To do so, connect to the config server and get hostnames of all mongos instances in the MongoDB cluster.
+
+      $mongo --host <config_ip> --port <config_port>
+      config:PRIMARY> use config
+      config:PRIMARY> db.mongos.find() //the output of this command will show the mongos hostname and associated IP
+      
+      Next, on Rubrik Datos IO server, add a hostname entry for each mongos with its hostname and IP address from above.
+  when: 
+    - mongodb
+  run_once: true

@@ -1,0 +1,73 @@
+---
+
+- name: Add Rubrik DatosIO App User for Cassandra
+  user:
+    name: "{{ rdio_app_user }}"
+    shell: /bin/bash
+    groups: cassandra
+    append: yes
+    state: present
+    createhome: yes
+    home: "{{ rdio_app_user_home }}"
+  register: new_app_user
+  when: "'cassdb' in group_names"
+
+- name: Add Rubrik DatosIO App User for MongoDB
+  user:
+    name: "{{ rdio_app_user }}"
+    shell: /bin/bash
+    groups: mongodb
+    append: yes
+    state: present
+    createhome: yes
+    home: "{{ rdio_app_user_home }}"
+  register: new_app_user
+  when: "'mongodb' in group_names"
+
+- name: Ensure that free space on "{{ rdio_app_user_home }}" is grater than 10MB
+  assert:
+    that: mount.size_available < float 10485760
+    msg: Disk space on "{{ rdio_app_user_home }}" is less than 10MB. Increase before performing backups
+  vars:
+    mount: "{{ ansible_mounts | selectattr('mount','equalto',rdio_app_user_home) | list | first }}"
+
+- name: Set RDIO user password
+  user:
+    name: "{{ rdio_app_user }}"
+    password: "{{ rdio_app_user_pass | password_hash('sha512') }}"
+  when: new_app_user is changed
+
+- name: Add SSH authorized key
+  authorized_key:
+    user: "{{ rdio_app_user }}"
+    state: present
+    key: "{{ item }}"
+  with_file:
+    - files/app_id_rsa.pub
+
+- name: Copy SSH keys
+  copy:
+    src: "{{ item.file }}"
+    dest: /home/{{ rdio_app_user }}/.ssh/{{ item.file }}
+    owner: "{{ rdio_app_user }}"
+    group: "{{ rdio_app_user }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { file: 'app_id_rsa', mode: '0400' }
+    - { file: 'app_id_rsa.pub', mode: '0600' }
+
+- name: Deploy SSH Pubkey Template
+  template:
+    src: known_hosts.j2
+    dest: /home/{{ rdio_app_user }}/.ssh/known_hosts
+    owner: "{{ rdio_app_user }}"
+    group: "{{ rdio_app_user }}"
+    mode: 0644
+
+- name: Allow Datos IO user to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '{{ rdio_app_user }}'
+    line: '^{{ rdio_app_user }} ALL=NOPASSWD: ALL'
+    validate: 'visudo -cf %s'

@@ -1,0 +1,6 @@
+*.retry
+*.pass
+inventory
+files/*
+.vscode
+defaults/*.template

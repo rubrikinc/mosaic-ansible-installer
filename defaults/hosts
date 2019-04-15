@@ -1,0 +1,18 @@
+[all:vars]
+ansible_connection=ssh
+ansible_user=root
+
+[rx]
+rdio-1 ansible_host=192.168.1.10
+rdio-2 ansible_host=192.168.1.11
+rdio-3 ansible_host=192.168.1.12
+
+[cassdb]
+cassdb-1 ansible_host=192.168.1.20
+cassdb-2 ansible_host=192.168.1.21
+cassdb-3 ansible_host=192.168.1.22
+
+[mongodb]
+mongodb-1 ansible_host=192.168.1.30
+mongodb-2 ansible_host=192.168.1.31
+mongodb-3 ansible_host=192.168.1.32
