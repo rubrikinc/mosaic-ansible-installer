@@ -26,11 +26,11 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
 2. Verify that the DataIO nodes have a non-root filesystem mounted with 300+GB of space. This will be used for the Datos IO user home directory and installation files.
 3. Install [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) on the host that will run the installation scripts.
     * This should not be the Datos IO nodes.
-4. Download the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-deploy) scripts from the RubrikInc organization on GitHub to the host that will run Ansible.
+4. Download the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) scripts from the RubrikInc organization on GitHub to the host that will run Ansible.
 5. Download the Rubrik Datos IO tarball from [Rubrik Support](https://support.rubrik.com)
-6. Place desired DatosIO tarball into the `files/` directory of the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-deploy) the prior to Playbook execution.
-7. Verify that the extract directory for the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-deploy) is not world writable.
-     * Run `chmod 755 ./rdio-ansible-deploy`
+6. Place desired DatosIO tarball into the `files/` directory of the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) the prior to Playbook execution.
+7. Verify that the extract directory for the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) is not world writable.
+     * Run `chmod 755 ./rdio-ansible-installer`
      * If this cannot be avoided run `export ANSIBLE_CONFIG=./ansible.cfg`
 8. Edit the role variables in the `defaults/vars.yml` file.
 
@@ -116,4 +116,4 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
 
 ## License
 
-* [MIT License](https://github.com/rubrikinc/rdio-ansible-deploy/blob/master/LICENSE)
+* [MIT License](https://github.com/rubrikinc/rdio-ansible-installer/blob/master/LICENSE)

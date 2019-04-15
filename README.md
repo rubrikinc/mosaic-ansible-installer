@@ -13,7 +13,7 @@ Features the following:
 
 # :blue_book: Documentation 
 
-Here are some resources to get you started! If you find any challenges from this project are not properly documented or are unclear, please [raise an issue](https://github.com/rubrikinc/rdio-ansible-deploy/issues/new/choose) and let us know! This is a fun, safe environment - don't worry if you're a GitHub newbie! :heart:
+Here are some resources to get you started! If you find any challenges from this project are not properly documented or are unclear, please [raise an issue](https://github.com/rubrikinc/rdio-ansible-installer/issues/new/choose) and let us know! This is a fun, safe environment - don't worry if you're a GitHub newbie! :heart:
 
 * [Quick Start Guide](/docs/quick-start.md)
 
@@ -23,7 +23,7 @@ Here are some resources to get you started! If you find any challenges from this
 * 
 * Requires the following variables data to be defined for any nodes using the this module:
 
-```
+```text
 ## RDIO
 rdio_user: rdio_user
 rdio_user_pass: Rubrik123!
