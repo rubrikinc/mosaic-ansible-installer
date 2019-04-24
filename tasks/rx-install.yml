@@ -55,7 +55,7 @@
 - name: Copy SSH keys
   copy:
     src: "files/{{ item.file }}"
-    dest: /home/{{ rdio_user }}/.ssh/{{ item.file }}
+    dest: "{{ rdio_user-home }}/.ssh/{{ item.file }}"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     mode: "{{ item.mode }}"
@@ -84,7 +84,7 @@
 - name: Deploy SSH Pubkey Template
   template:
     src: known_hosts.j2
-    dest: /home/{{ rdio_user }}/.ssh/known_hosts
+    dest: "{{ rdio_user_home }}/.ssh/known_hosts"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     mode: 0644
@@ -151,7 +151,7 @@
 - name: Deploy RecoverX Node Template
   template:
     src: nodes.j2
-    dest: /home/{{ rdio_user }}/nodes
+    dest: "{{ rdio_user_home }}/nodes"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
   become: true
@@ -160,13 +160,13 @@
 
 - name: Detect and register Nodes
   slurp:
-    src: /home/{{ rdio_user }}/nodes
+    src: "{{ rdio_user_home }}/nodes"
   register: nodes
   when: inventory_hostname == groups['rx'][0]
 
 - name: Detect existing RecoverX installation
   stat:
-    path: /home/{{ rdio_user }}/datosinstall
+    path: "{{ rdio_user_home }}/datosinstall"
   register: rdio_dir
   changed_when: False
   ignore_errors: True
@@ -174,7 +174,7 @@
 - name: Deploy RDIO release - {{ rdio_install_file }}
   unarchive:
     src: "{{ rdio_install_file }}"
-    dest: /home/{{ rdio_user }}/
+    dest: "{{ rdio_user }}/"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     list_files: true
@@ -189,10 +189,10 @@
   shell: >
     ./install_datos
     -i {{ nodes['content'] | b64decode }}
-    -t /home/{{ rdio_user }}/datosinstall
+    -t {{ rdio_user_home }}/datosinstall
     --skip-eula-check
   args:
-    chdir: /home/{{ rdio_user }}/{{ deploy_files.files[0] }}
+    chdir: "{{ rdio_user_home }}/{{ deploy_files.files[0] }}""
   become: true
   become_user: "{{ rdio_user }}"
   register: rdio_install
@@ -202,7 +202,7 @@
 
 - name: Deploy RecoverX init script
   copy:
-    src: /home/{{ rdio_user }}/datosinstall/datos-server
+    src: "{{ rdio_user_home }}/datosinstall/datos-server"
     dest: /etc/init.d/datos-server
     remote_src: true
     owner: root
@@ -224,7 +224,7 @@
 
 - name: Change permissions of fusermount
   file:
-    path: /home/{{ rdio_user }}/datosinstall/lib/fuse/bin/fusermount
+    path: "{{ rdio_user_home }}/datosinstall/lib/fuse/bin/fusermount"
     owner: root
     mode: "u+s"
   become: root

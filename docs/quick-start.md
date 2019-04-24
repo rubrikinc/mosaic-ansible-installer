@@ -40,7 +40,7 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
     rdio_user: rdio_user
     rdio_user_pass: Rubrik123!
     rdio_user_uid: "2018"
-    rdio_user_home: /home/rdio_user       # must be on a non-root volume
+    rdio_user_home: /home/{{ rdio_user }}       # must be on a non-root volume
     rdio_install_file: datos-3.0.1-p3-190329.tar.gz
     rdio_nfs: False
     rdio_nfs_mount: /mnt/datos_target
@@ -52,7 +52,7 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
 
     rdio_app_user: rdio_app_user
     rdio_app_user_pass: Rubrik123!
-    rdio_app_user_home: /home/rdio_app_user
+    rdio_app_user_home: /home/{{ rdio_app_user }}
     ```
 
     * `rdio_user` - User to create that will run Datos IO on the Datos IO nodes

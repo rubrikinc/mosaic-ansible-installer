@@ -27,7 +27,7 @@ Here are some resources to get you started! If you find any challenges from this
 ## RDIO
 rdio_user: rdio_user
 rdio_user_pass: Rubrik123!
-rdio_user_home: /home/rdio_user
+rdio_user_home: /home/{{ rdio_user }}
 rdio_install_file: datos_3.0.0_CentOS_6.8_2018-11-16-00-59.tar.gz
 rdio_nfs: False
 rdio_nfs_mount: /mnt/datos_target
