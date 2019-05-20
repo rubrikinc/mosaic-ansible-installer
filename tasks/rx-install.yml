@@ -54,7 +54,7 @@
 - name: Copy SSH keys
   copy:
     src: "files/{{ item.file }}"
-    dest: "{{ rdio_user-home }}/.ssh/{{ item.file }}"
+    dest: "{{ rdio_user_home }}/.ssh/{{ item.file }}"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     mode: "{{ item.mode }}"
@@ -80,7 +80,7 @@
     state: touch
   become_user: "{{ rdio_user }}"
 
-- name: Deploy SSH Pubkey Template
+- name: Deploy SSH Public Key Template
   template:
     src: known_hosts.j2
     dest: "{{ rdio_user_home }}/.ssh/known_hosts"
@@ -88,7 +88,7 @@
     group: "{{ rdio_user }}"
     mode: 0644
 
-- name: CentOS/Redhat - Modify pam limits
+- name: CentOS/Red Hat - Modify pam limits
   pam_limits:
     domain: "{{ item.domain }}"
     limit_type: "{{ item.type }}"
@@ -142,6 +142,8 @@
   lineinfile:
     path: /etc/security/limits.d/20-nproc.conf
     line: "{{ item }}"
+    create: yes
+    state: present
   with_items:
     - '* hard nproc 64000'
     - '* soft nproc 64000'
@@ -170,14 +172,14 @@
   changed_when: False
   ignore_errors: True
 
-- name: Create/verifoy Installer directory {{ rdio_installer_directory }}
+- name: Create/verify Installer directory {{ rdio_installer_directory }}
   file:
     path: "{{ rdio_installer_directory }}"
     state: directory
     mode: 0700
   become_user: "{{ rdio_user }}"
 
-- name: Deploy RDIO release - {{ rdio_install_file }}
+- name: Copy RDIO release file to {{ groups['rx'][0] }} - {{ rdio_install_file }}
   unarchive:
     src: "{{ rdio_install_file }}"
     dest: "{{ rdio_installer_directory }}/"
@@ -216,7 +218,7 @@
     mode: 0755
 
 - name: Enable RecoverX service
-  systemd:
+  service:
     name: datos-server
     enabled: yes
     state: started
@@ -227,13 +229,14 @@
     owner: root
     group: root
     state: touch
+  become: true
 
 - name: Change permissions of fusermount
   file:
     path: "{{ rdio_installer_directory }}/datosinstall/lib/fuse/bin/fusermount"
     owner: root
     mode: "u+s"
-  become: root
+  become: true
   when: 
     - mongodb
 
@@ -241,7 +244,7 @@
   modprobe:
     name: fuse
     state: present
-  become: root
+  become: true
   when: 
     - mongodb
 
@@ -253,6 +256,7 @@
     state: mounted
   when: 
     - mongodb
+  become: true
 
 - name: Create NFS Mount point
   file:
@@ -263,6 +267,7 @@
     mode: 0755
   when: 
     - rdio_nfs
+  become: true
 
 - name: Mount NFS storage
   mount:
@@ -273,12 +278,13 @@
     state: mounted
   when: 
     - rdio_nfs
+  become: true
 
-- name: Update hosts tables with MongoDB hostnames
+- name: Update hosts tables with MongoDB host names
   debug:
     msg: | 
-      -- Manual Step -- [For MongoDB Only] Mongos node hostnames need to be resolvable from the Rubrik Datos IO server. 
-      To do so, connect to the config server and get hostnames of all mongos instances in the MongoDB cluster.
+      -- Manual Step -- [For MongoDB Only] MongoDB node host names need to be resolvable from the Rubrik Datos IO server. 
+      To do so, connect to the config server and get host names of all MongoDB instances in the MongoDB cluster.
 
       $mongo --host <config_ip> --port <config_port>
       config:PRIMARY> use config

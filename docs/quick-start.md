@@ -31,7 +31,7 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
 6. Place desired DatosIO tarball into the `files/` directory of the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) the prior to Playbook execution.
 7. Verify that the extract directory for the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) is not world writable.
      * Run `chmod 755 ./rdio-ansible-installer`
-     * If this cannot be avoided run `export ANSIBLE_CONFIG=./ansible.cfg`
+     * If this cannot be avoided run `export ANSIBLE_CONFIG=./ansible/ansible.cfg`
 8. Edit the role variables in the `defaults/vars.yml` file.
 
     ```text
@@ -69,7 +69,7 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
     * `rdio_app_user_pass` - Password of the Datos IO Application User
     * `rdio_app_user_home` - Home directory of the Datos IO Application User.
   
-9. Edit the `defaults/hosts` inventory file:
+9. Edit the `ansible/hosts` inventory file:
 
     ```text
     [all:vars]
@@ -101,8 +101,8 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
     * With out ssh keys installed for root on each node:
 
     ```bash
-    export ANSIBLE_CONFIG=./ansible.cfg
-    ansible-playbook -i defaults/hosts install-rx.yml --ask-pass
+    export ANSIBLE_CONFIG=./ansible/ansible.cfg
+    ansible-playbook -l rx -i ansible/hosts install-rx.yml --ask-pass
     ```
 
     * With ssh keys installed for root on each node:
@@ -110,8 +110,8 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
     ```bash
     ssh-agent
     ssh-add ~/.ssh/id_rsa
-    export ANSIBLE_CONFIG=./ansible.cfg
-    ansible-playbook -i defaults/hosts install-rx.yml
+    export ANSIBLE_CONFIG=./ansible/ansible.cfg
+    ansible-playbook -l rx -i ansible/hosts install-rx.yml
     ```
 
 ## License
