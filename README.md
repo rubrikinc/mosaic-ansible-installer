@@ -7,7 +7,7 @@ Features the following:
 * Configuration of new, customer provided, Datos IO nodes
 * Installation of the Datos IO software.
 
-# :blue_book: Documentation 
+# :blue_book: Documentation
 
 Here are some resources to get you started! If you find any challenges from this project are not properly documented or are unclear, please [raise an issue](https://github.com/rubrikinc/rdio-ansible-installer/issues/new/choose) and let us know! This is a fun, safe environment - don't worry if you're a GitHub newbie! :heart:
 
