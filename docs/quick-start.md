@@ -1,4 +1,4 @@
-# ansible-rdio-recoverx
+# rdio-ansible-installer
 
 Ansible Playbook to deploy Rubrik DatosIO RecoverX 3.0 in a single or multi-node deployment on CentOS 7.x x64 or Ubuntu 14 or 16 x64.
 This Playbook deploys a standard configuration without any Stores/Sources/Schedules/Policies.
