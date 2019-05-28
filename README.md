@@ -7,36 +7,45 @@ Features the following:
 * Configuration of new, customer provided, Datos IO nodes
 * Installation of the Datos IO software.
 
-## :exclamation: :construction: Early Access/Work In Progress
-
-* This is the initial public release in progress. Bugs may be present.
-
 # :blue_book: Documentation 
 
 Here are some resources to get you started! If you find any challenges from this project are not properly documented or are unclear, please [raise an issue](https://github.com/rubrikinc/rdio-ansible-installer/issues/new/choose) and let us know! This is a fun, safe environment - don't worry if you're a GitHub newbie! :heart:
 
-* [Quick Start Guide](/docs/quick-start.md)
+* [Quick Start Guide](docs/quick-start.md)
 
 # :white_check_mark: Prerequisites
 
-* Ansible version X.X.X must be installed.
-* 
+* Ansible 2.7.9
+* Local user with sudo access for Playbook execution
+* Python 2.7+ or 3.6+
+* sshpass (`yum install sshpass` or `apt-get install sshpass`)
+* Access to the OS package repository to install required packages.
+  
 * Requires the following variables data to be defined for any nodes using the this module:
 
 ```text
-## RDIO
-rdio_user: rdio_user
-rdio_user_pass: Rubrik123!
-rdio_user_home: /home/{{ rdio_user }}
-rdio_install_file: datos_3.0.0_CentOS_6.8_2018-11-16-00-59.tar.gz
-rdio_nfs: False
-rdio_nfs_mount: /mnt/datos_target
-rdio_nfs_export: /data
-rdio_nfs_target: fs1.dom.local
-mongodb: False
-```
+   # RDIO Node settings
 
-* User needs to provide a valid ssh key to log into the Datos IO servers
+    rdio_user: rdio_user
+    rdio_user_pass: Rubrik123!
+    rdio_user_uid: "2018"
+    rdio_user_home: "/home/{{ rdio_user }}"      # must be on a non-root volume
+    rdio_installer_directory: "{{ rdio_user_home }}"
+    rdio_install_file: datos-3.0.1-p3-190329.tar.gz
+    rdio_nfs: False
+    rdio_nfs_mount: /mnt/datos_target
+    rdio_nfs_export: /exports/datos_data
+    rdio_nfs_target: fs1.dom.local
+    mongodb: False
+    cassdb_minimum_space: 268435456000          #Value in bytes
+    mongodb_minimum_space: 1099511627776        #Value in bytes
+
+    #RDIO Data Source settings
+
+    rdio_app_user: rdio_app_user
+    rdio_app_user_pass: Rubrik123!
+    rdio_app_user_home: /home/{{ rdio_app_user }}
+```
 
 # :muscle: How You Can Help
 
