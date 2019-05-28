@@ -24,6 +24,39 @@
     password: "{{ rdio_user_pass | password_hash('sha512') }}"
   when: new_user is changed
 
+- name: Determine mount point of "{{ rdio_user_home }}"
+  command: "/usr/bin/env stat -c '%m' {{ rdio_user_home }}"
+  register: rdio_user_home_mount_point
+  changed_when: False
+
+- name: "(Cassandra) Verifying that free space on {{ rdio_user_home_mount_point.stdout }} is greater than {{ cassdb_minimum_space }} bytes."
+  assert:
+    that: "{{ item.size_available > cassdb_minimum_space }}"
+    fail_msg: |
+      "Disk space on {{ rdio_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
+      This is less than than the minimum of {{ cassdb_minimum_space }} bytes.
+      Increase the capacity of {{ rdio_user_home_mount_point.stdout }} before proceeding."
+    success_msg: Free space on "{{ rdio_user_home_mount_point.stdout }}" is ok. 
+    quiet: true
+  with_items: "{{ ansible_mounts }}"
+  when: 
+    - item.mount == rdio_user_home_mount_point.stdout
+    - not mongodb | bool
+
+- name: "(MongoDB) Verifying that free space on {{ rdio_user_home_mount_point.stdout }} is greater than {{ mongodb_minimum_space }} bytes."
+  assert:
+    that: "{{ item.size_available > mongodb_minimum_space }}"
+    fail_msg: |
+      "Disk space on {{ rdio_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
+      This is less than than the minimum of {{ mongodb_minimum_space }} bytes.
+      Increase the capacity of {{ rdio_user_home_mount_point.stdout }} before proceeding."
+    success_msg: Free space on "{{ rdio_user_home_mount_point.stdout }}" is ok. 
+    quiet: true
+  with_items: "{{ ansible_mounts }}"
+  when: 
+    - item.mount == rdio_user_home_mount_point.stdout
+    - mongodb | bool
+
 - name: Create ~/.ssh directory 
   file:
     path: "{{ rdio_user_home }}/.ssh"
@@ -238,7 +271,7 @@
     mode: "u+s"
   become: true
   when: 
-    - mongodb
+    - mongodb | bool
 
 - name: Load fuse module
   modprobe:
@@ -246,7 +279,7 @@
     state: present
   become: true
   when: 
-    - mongodb
+    - mongodb | bool
 
 - name: Mount fuse
   mount:
@@ -255,7 +288,7 @@
     fstype: fusectl
     state: mounted
   when: 
-    - mongodb
+    - mongodb | bool 
   become: true
 
 - name: Create NFS Mount point
@@ -266,7 +299,7 @@
     state: directory
     mode: 0755
   when: 
-    - rdio_nfs
+    - rdio_nfs | bool
   become: true
 
 - name: Mount NFS storage
@@ -277,7 +310,7 @@
     opts: nfsvers=3,auto,hard,actimeo=0,lookupcache=none,noac
     state: mounted
   when: 
-    - rdio_nfs
+    - rdio_nfs | bool
   become: true
 
 - name: Update hosts tables with MongoDB host names
@@ -292,5 +325,5 @@
       
       Next, on Rubrik Datos IO server, add a hostname entry for each mongos with its hostname and IP address from above.
   when: 
-    - mongodb
+    - mongodb | bool
   run_once: true
