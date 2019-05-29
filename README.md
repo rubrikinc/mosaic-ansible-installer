@@ -1,6 +1,6 @@
 # Rubrik Datos IO Ansible Deployment
 
-Rubrik Datos IO Ansible scripts for deploying RecoverX.
+Rubrik Datos IO Ansible role for deploying RecoverX.
 
 Features the following:
 

@@ -1,9 +1,9 @@
 # rdio-ansible-installer
 
-Ansible Playbook to deploy Rubrik DatosIO RecoverX 3.0 in a single or multi-node deployment on CentOS 7.x x64 or Ubuntu 14 or 16 x64.
-This Playbook deploys a standard configuration without any Stores/Sources/Schedules/Policies.
+Ansible role to deploy Rubrik DatosIO RecoverX 3.0 in a single or multi-node deployment on CentOS 7.x x64 or Ubuntu 14 or 16 x64.
+This role deploys a standard configuration without any Stores/Sources/Schedules/Policies.
 
-## Playbook Requirements
+## Role Requirements
 
 ### Datos IO Nodes
 
@@ -15,7 +15,7 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
 ### Ansible Host
 
 * Ansible 2.7.9
-* Local user with sudo access for Playbook execution
+* Local user with sudo access for role execution
 * Python 2.7+ or 3.6+
 * sshpass (`yum install sshpass` or `apt-get install sshpass`)
 * Access to the OS package repository to install required packages.
@@ -24,12 +24,12 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
 
 1. Deploy 1, 3 or 5 CentOS, Red Hat Enterprise Linux, Ubuntu, Amazon Linux or Amazon Linux 2 nodes to act as the Datos IO nodes.
 2. Verify that the DataIO nodes have a non-root filesystem mounted with 300+GB of space. This will be used for the Datos IO user home directory and installation files.
-3. Install [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) on the host that will run the installation scripts.
+3. Install [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) on the host that will execute the Ansible role.
     * This should not be the Datos IO nodes.
-4. Download the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) scripts from the RubrikInc organization on GitHub to the host that will run Ansible.
+4. Download the [Ansible RDIO Deployment Role](https://github.com/rubrikinc/rdio-ansible-installer) role from the RubrikInc organization on GitHub to the host that will run Ansible.
 5. Download the Rubrik Datos IO tarball from [Rubrik Support](https://support.rubrik.com)
-6. Place desired DatosIO tarball into the `files/` directory of the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) the prior to Playbook execution.
-7. Verify that the extract directory for the [Ansible RDIO Deployment Script](https://github.com/rubrikinc/rdio-ansible-installer) is not world writable.
+6. Place desired DatosIO tarball into the `files/` directory of the [Ansible RDIO Deployment Role](https://github.com/rubrikinc/rdio-ansible-installer) the prior to role execution.
+7. Verify that the extract directory for the [Ansible RDIO Deployment Role](https://github.com/rubrikinc/rdio-ansible-installer) is not world writable.
      * Run `chmod 755 ./rdio-ansible-installer`
      * If this cannot be avoided run `export ANSIBLE_CONFIG=./ansible/ansible.cfg`
 8. Edit the role variables in the `defaults/vars.yml` file.
@@ -51,30 +51,32 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
     cassdb_minimum_space: 268435456000          #Value in bytes
     mongodb_minimum_space: 1099511627776        #Value in bytes
 
-    #RDIO Data Source settings
+    # RDIO Data Source settings
 
     rdio_app_user: rdio_app_user
     rdio_app_user_pass: Rubrik123!
     rdio_app_user_home: /home/{{ rdio_app_user }}
     ```
 
-    * `rdio_user` - User to create that will run Datos IO on the Datos IO nodes
-    * `rdio_user_pass` - Password of the Datos IO user
-    * `rdio_user_uid` - The UUID of the Datos IO user on the Datos IO nodes.
-    * `rdio_user_home` - Home directory of the Datos IO user. This must be on a non-root volume.
-    * `rdio_installer_directory` - Directory where the Datos IO software should be installed on the Datos IO nodes. Default is the Datos IO user's home directory.
-    * `rdio_install_file` - Name of the Datos IO tarball to deploy. Should be placed in `files/`
-    * `rdio_nfs` - Set to 'True' if NFS storage will be used as the data store.
-    * `rdio_nfs_mount` - Mount point for the NFS data store on the Datos IO servers (if NFS will be used).
-    * `rdio_nfs_export` - Export on the NFS server (if NFS will be used).
-    * `rdio_nfs_target` - Hostname or IP address of the NFS server (if NFS will be used).
-    * `mongodb` - Set to 'True' if using MongoDB as a data source, as this will enable the required fuse configuration changes.
-    * `cassdb_minimum_space` - The minimum space in bytes required on the Datos IO nodes in the `rdio_user_home` directory for Cassandra protection.
-    * `mongodb_minimum_space` - The minimum space in bytes required on the Datos IO nodes in the `rdio_user_home` directory for MongoDB protection.
+    | Variable | Description |
+    | -------- | ----------- |
+    | `rdio_user` | User to create that will run Datos IO on the Datos IO nodes |
+    | `rdio_user_pass` | Password of the Datos IO user |
+    | `rdio_user_uid` | The UUID of the Datos IO user on the Datos IO nodes. |
+    | `rdio_user_home` | Home directory of the Datos IO user. This must be on a non-root volume. |
+    | `rdio_installer_directory` | Directory where the Datos IO software should be installed on the Datos IO nodes. Default is the Datos IO user's home directory. |
+    | `rdio_install_file` | Name of the Datos IO tarball to deploy. Should be placed in `files/` |
+    | `rdio_nfs` | Set to 'True' if NFS storage will be used as the data store. |
+    | `rdio_nfs_mount` | Mount point for the NFS data store on the Datos IO servers (if NFS will be used). |
+    | `rdio_nfs_export` | Export on the NFS server (if NFS will be used). |
+    | `rdio_nfs_target` | Hostname or IP address of the NFS server (if NFS will be used). |
+    | `mongodb` | Set to 'True' if using MongoDB as a data source, as this will enable the required fuse configuration changes. |
+    | `cassdb_minimum_space` | The minimum space in bytes required on the Datos IO nodes in the `rdio_user_home` directory for Cassandra protection. |
+    | `mongodb_minimum_space` | The minimum space in bytes required on the Datos IO nodes in the `rdio_user_home` directory for MongoDB protection. |
 
-    * `rdio_app_user` - User to create on the data source that will run the Datos IO agent.
-    * `rdio_app_user_pass` - Password of the Datos IO Application User
-    * `rdio_app_user_home` - Home directory of the Datos IO Application User.
+    | `rdio_app_user` | User to create on the data source that will run the Datos IO agent. |
+    | `rdio_app_user_pass` | Password of the Datos IO Application User. |
+    | `rdio_app_user_home` | Home directory of the Datos IO Application User. |
   
 9. Edit the `ansible/hosts` inventory file:
 
@@ -104,7 +106,7 @@ This Playbook deploys a standard configuration without any Stores/Sources/Schedu
    * All MongoDB nodes should be part of the `mongodb` group
    * List each host with the format `<hostname> ansible_host=<ip_address>`
 
-10. Run the playbook to install Datos IO based on your configuration:
+10. Run the ansible-playbook command to install Datos IO based on your configuration:
     * With out ssh keys installed for root on each node:
 
     ```bash
