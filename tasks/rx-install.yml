@@ -24,6 +24,39 @@
     password: "{{ rdio_user_pass | password_hash('sha512') }}"
   when: new_user is changed
 
+- name: Determine mount point of "{{ rdio_user_home }}"
+  command: "/usr/bin/env stat -c '%m' {{ rdio_user_home }}"
+  register: rdio_user_home_mount_point
+  changed_when: False
+
+- name: "(Cassandra) Verifying that free space on {{ rdio_user_home_mount_point.stdout }} is greater than {{ cassdb_minimum_space }} bytes."
+  assert:
+    that: "{{ item.size_available > cassdb_minimum_space }}"
+    fail_msg: |
+      "Disk space on {{ rdio_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
+      This is less than than the minimum of {{ cassdb_minimum_space }} bytes.
+      Increase the capacity of {{ rdio_user_home_mount_point.stdout }} before proceeding."
+    success_msg: Free space on "{{ rdio_user_home_mount_point.stdout }}" is ok. 
+    quiet: true
+  with_items: "{{ ansible_mounts }}"
+  when: 
+    - item.mount == rdio_user_home_mount_point.stdout
+    - not mongodb | bool
+
+- name: "(MongoDB) Verifying that free space on {{ rdio_user_home_mount_point.stdout }} is greater than {{ mongodb_minimum_space }} bytes."
+  assert:
+    that: "{{ item.size_available > mongodb_minimum_space }}"
+    fail_msg: |
+      "Disk space on {{ rdio_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
+      This is less than than the minimum of {{ mongodb_minimum_space }} bytes.
+      Increase the capacity of {{ rdio_user_home_mount_point.stdout }} before proceeding."
+    success_msg: Free space on "{{ rdio_user_home_mount_point.stdout }}" is ok. 
+    quiet: true
+  with_items: "{{ ansible_mounts }}"
+  when: 
+    - item.mount == rdio_user_home_mount_point.stdout
+    - mongodb | bool
+
 - name: Create ~/.ssh directory 
   file:
     path: "{{ rdio_user_home }}/.ssh"
@@ -38,7 +71,6 @@
   register: create_keys
   become_user: "{{ rdio_user }}"
   when: inventory_hostname == groups['rx'][0]
-
 
 - name: Grab ssh keys
   fetch:
@@ -55,7 +87,7 @@
 - name: Copy SSH keys
   copy:
     src: "files/{{ item.file }}"
-    dest: /home/{{ rdio_user }}/.ssh/{{ item.file }}
+    dest: "{{ rdio_user_home }}/.ssh/{{ item.file }}"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     mode: "{{ item.mode }}"
@@ -81,15 +113,15 @@
     state: touch
   become_user: "{{ rdio_user }}"
 
-- name: Deploy SSH Pubkey Template
+- name: Deploy SSH Public Key Template
   template:
     src: known_hosts.j2
-    dest: /home/{{ rdio_user }}/.ssh/known_hosts
+    dest: "{{ rdio_user_home }}/.ssh/known_hosts"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     mode: 0644
 
-- name: CentOS/Redhat - Modify pam limits
+- name: CentOS/Red Hat - Modify pam limits
   pam_limits:
     domain: "{{ item.domain }}"
     limit_type: "{{ item.type }}"
@@ -143,6 +175,8 @@
   lineinfile:
     path: /etc/security/limits.d/20-nproc.conf
     line: "{{ item }}"
+    create: yes
+    state: present
   with_items:
     - '* hard nproc 64000'
     - '* soft nproc 64000'
@@ -151,7 +185,7 @@
 - name: Deploy RecoverX Node Template
   template:
     src: nodes.j2
-    dest: /home/{{ rdio_user }}/nodes
+    dest: "{{ rdio_user_home }}/nodes"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
   become: true
@@ -160,21 +194,28 @@
 
 - name: Detect and register Nodes
   slurp:
-    src: /home/{{ rdio_user }}/nodes
+    src: "{{ rdio_user_home }}/nodes"
   register: nodes
   when: inventory_hostname == groups['rx'][0]
 
 - name: Detect existing RecoverX installation
   stat:
-    path: /home/{{ rdio_user }}/datosinstall
+    path: "{{ rdio_installer_directory }}/datosinstall"
   register: rdio_dir
   changed_when: False
   ignore_errors: True
 
-- name: Deploy RDIO release - {{ rdio_install_file }}
+- name: Create/verify Installer directory {{ rdio_installer_directory }}
+  file:
+    path: "{{ rdio_installer_directory }}"
+    state: directory
+    mode: 0700
+  become_user: "{{ rdio_user }}"
+
+- name: Copy RDIO release file to {{ groups['rx'][0] }} - {{ rdio_install_file }}
   unarchive:
     src: "{{ rdio_install_file }}"
-    dest: /home/{{ rdio_user }}/
+    dest: "{{ rdio_installer_directory }}/"
     owner: "{{ rdio_user }}"
     group: "{{ rdio_user }}"
     list_files: true
@@ -189,10 +230,10 @@
   shell: >
     ./install_datos
     -i {{ nodes['content'] | b64decode }}
-    -t /home/{{ rdio_user }}/datosinstall
+    -t {{ rdio_installer_directory }}/datosinstall
     --skip-eula-check
   args:
-    chdir: /home/{{ rdio_user }}/{{ deploy_files.files[0] }}
+    chdir: "{{ rdio_installer_directory }}/{{ deploy_files.files[0] }}"
   become: true
   become_user: "{{ rdio_user }}"
   register: rdio_install
@@ -202,7 +243,7 @@
 
 - name: Deploy RecoverX init script
   copy:
-    src: /home/{{ rdio_user }}/datosinstall/datos-server
+    src: "{{ rdio_installer_directory }}/datosinstall/datos-server"
     dest: /etc/init.d/datos-server
     remote_src: true
     owner: root
@@ -210,7 +251,7 @@
     mode: 0755
 
 - name: Enable RecoverX service
-  systemd:
+  service:
     name: datos-server
     enabled: yes
     state: started
@@ -221,23 +262,24 @@
     owner: root
     group: root
     state: touch
+  become: true
 
 - name: Change permissions of fusermount
   file:
-    path: /home/{{ rdio_user }}/datosinstall/lib/fuse/bin/fusermount
+    path: "{{ rdio_installer_directory }}/datosinstall/lib/fuse/bin/fusermount"
     owner: root
     mode: "u+s"
-  become: root
+  become: true
   when: 
-    - mongodb
+    - mongodb | bool
 
 - name: Load fuse module
   modprobe:
     name: fuse
     state: present
-  become: root
+  become: true
   when: 
-    - mongodb
+    - mongodb | bool
 
 - name: Mount fuse
   mount:
@@ -246,7 +288,8 @@
     fstype: fusectl
     state: mounted
   when: 
-    - mongodb
+    - mongodb | bool 
+  become: true
 
 - name: Create NFS Mount point
   file:
@@ -256,7 +299,8 @@
     state: directory
     mode: 0755
   when: 
-    - rdio_nfs
+    - rdio_nfs | bool
+  become: true
 
 - name: Mount NFS storage
   mount:
@@ -266,13 +310,14 @@
     opts: nfsvers=3,auto,hard,actimeo=0,lookupcache=none,noac
     state: mounted
   when: 
-    - rdio_nfs
+    - rdio_nfs | bool
+  become: true
 
-- name: Update hosts tables with MongoDB hostnames
+- name: Update hosts tables with MongoDB host names
   debug:
     msg: | 
-      -- Manual Step -- [For MongoDB Only] Mongos node hostnames need to be resolvable from the Rubrik Datos IO server. 
-      To do so, connect to the config server and get hostnames of all mongos instances in the MongoDB cluster.
+      -- Manual Step -- [For MongoDB Only] MongoDB node host names need to be resolvable from the Rubrik Datos IO server. 
+      To do so, connect to the config server and get host names of all MongoDB instances in the MongoDB cluster.
 
       $mongo --host <config_ip> --port <config_port>
       config:PRIMARY> use config
@@ -280,5 +325,5 @@
       
       Next, on Rubrik Datos IO server, add a hostname entry for each mongos with its hostname and IP address from above.
   when: 
-    - mongodb
+    - mongodb | bool
   run_once: true

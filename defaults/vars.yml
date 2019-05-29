@@ -5,15 +5,18 @@
 rdio_user: rdio_user
 rdio_user_pass: Rubrik123!
 rdio_user_uid: "2018"
-rdio_user_home: /home/rdio_user       # must be on a non-root volume
+rdio_user_home: "/home/{{ rdio_user }}"      # must be on a non-root volume
+rdio_installer_directory: "{{ rdio_user_home }}"
 rdio_install_file: datos-3.0.1-p3-190329.tar.gz
 rdio_nfs: False
 rdio_nfs_mount: /mnt/datos_target
 rdio_nfs_export: /exports/datos_data
 rdio_nfs_target: fs1.dom.local
 mongodb: False
+cassdb_minimum_space: 268435456000          #Value in bytes
+mongodb_minimum_space: 1099511627776        #Value in bytes
 
-#RDIO Data Source settings
+# RDIO Data Source settings
 
 rdio_app_user: rdio_app_user
 rdio_app_user_pass: Rubrik123!

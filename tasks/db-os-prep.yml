@@ -48,7 +48,7 @@
 - name: Copy SSH keys
   copy:
     src: "{{ item.file }}"
-    dest: /home/{{ rdio_app_user }}/.ssh/{{ item.file }}
+    dest: "{{ rdio_app_user_home }}/.ssh/{{ item.file }}"
     owner: "{{ rdio_app_user }}"
     group: "{{ rdio_app_user }}"
     mode: "{{ item.mode }}"
@@ -59,7 +59,7 @@
 - name: Deploy SSH Pubkey Template
   template:
     src: known_hosts.j2
-    dest: /home/{{ rdio_app_user }}/.ssh/known_hosts
+    dest: "{{ rdio_app_user_home }}/.ssh/known_hosts"
     owner: "{{ rdio_app_user }}"
     group: "{{ rdio_app_user }}"
     mode: 0644
@@ -71,3 +71,31 @@
     regexp: '{{ rdio_app_user }}'
     line: '^{{ rdio_app_user }} ALL=NOPASSWD: ALL'
     validate: 'visudo -cf %s'
+
+- name: Set permissions on "{{ rdio_app_user_home }}"
+  file:
+    dest: "{{ rdio_app_user_home }}"
+    mode: 0755
+    recurse: yes
+  become: yes
+
+- name: (Cassandra) set /var/lib/cassandra to r+x 
+  file:
+    dest: /var/lib/cassandra
+    mode: 0755
+  become: yes
+  when: "'cassdb' in group_names"
+
+- name: (Cassandra) set /var/lib/cassandra/data to r+x 
+  file:
+    dest: /var/lib/cassandra/data
+    mode: 0755
+    recurse: yes
+  become: yes
+  when: "'cassdb' in group_names"
+  
+- name: (Cassandra) Reload ssh service
+  service: 
+    name: ssh 
+    stat: reloaded
+  

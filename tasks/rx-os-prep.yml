@@ -9,7 +9,7 @@
   yum:
     name:
       - policycoreutils-python
-      - python2-pip
+      - python-pip
       - nfs-utils
     state: latest
   when: ansible_os_family == 'RedHat'
