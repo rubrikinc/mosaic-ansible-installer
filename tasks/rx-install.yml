@@ -229,7 +229,7 @@
 - name: Install RecoverX - {{ mosaic_install_file }}
   shell: >
     ./install_datos 
-    -i {{ nodes['content'] | b64decode }} 
+    -i {{ nodes['content'] | b64decode | trim }} 
     -t {{ mosaic_installer_directory }}/datosinstall 
     --skip-eula-check
   args:
