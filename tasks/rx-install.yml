@@ -2,74 +2,74 @@
  
 - name: Add Rubrik Datos IO group
   group:
-    name: "rdio"
+    name: "mosaic"
     state: present
   register: new_group
 
 - name: Add Rubrik DatosIO User
   user:
-    name: "{{ rdio_user }}"
+    name: "{{ mosaic_user }}"
     shell: /bin/bash
-    groups: rdio
+    groups: mosaic
     append: yes
     state: present
     createhome: yes
-    home: "{{ rdio_user_home }}"
-    uid: "{{ rdio_user_uid }}"
+    home: "{{ mosaic_user_home }}"
+    uid: "{{ mosaic_user_uid }}"
   register: new_user
 
-- name: Set RDIO user password
+- name: Set Mosaic user password
   user:
-    name: "{{ rdio_user }}"
-    password: "{{ rdio_user_pass | password_hash('sha512') }}"
+    name: "{{ mosaic_user }}"
+    password: "{{ mosaic_user_pass | password_hash('sha512') }}"
   when: new_user is changed
 
-- name: Determine mount point of "{{ rdio_user_home }}"
-  command: "/usr/bin/env stat -c '%m' {{ rdio_user_home }}"
-  register: rdio_user_home_mount_point
+- name: Determine mount point of "{{ mosaic_user_home }}"
+  command: "/usr/bin/env stat -c '%m' {{ mosaic_user_home }}"
+  register: mosaic_user_home_mount_point
   changed_when: False
 
-- name: "(Cassandra) Verifying that free space on {{ rdio_user_home_mount_point.stdout }} is greater than {{ cassdb_minimum_space }} bytes."
+- name: "(Cassandra) Verifying that free space on {{ mosaic_user_home_mount_point.stdout }} is greater than {{ cassdb_minimum_space }} bytes."
   assert:
     that: "{{ item.size_available > cassdb_minimum_space }}"
     fail_msg: |
-      "Disk space on {{ rdio_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
+      "Disk space on {{ mosaic_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
       This is less than than the minimum of {{ cassdb_minimum_space }} bytes.
-      Increase the capacity of {{ rdio_user_home_mount_point.stdout }} before proceeding."
-    success_msg: Free space on "{{ rdio_user_home_mount_point.stdout }}" is ok. 
+      Increase the capacity of {{ mosaic_user_home_mount_point.stdout }} before proceeding."
+    success_msg: Free space on "{{ mosaic_user_home_mount_point.stdout }}" is ok. 
     quiet: true
   with_items: "{{ ansible_mounts }}"
   when: 
-    - item.mount == rdio_user_home_mount_point.stdout
+    - item.mount == mosaic_user_home_mount_point.stdout
     - not mongodb | bool
 
-- name: "(MongoDB) Verifying that free space on {{ rdio_user_home_mount_point.stdout }} is greater than {{ mongodb_minimum_space }} bytes."
+- name: "(MongoDB) Verifying that free space on {{ mosaic_user_home_mount_point.stdout }} is greater than {{ mongodb_minimum_space }} bytes."
   assert:
     that: "{{ item.size_available > mongodb_minimum_space }}"
     fail_msg: |
-      "Disk space on {{ rdio_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
+      "Disk space on {{ mosaic_user_home_mount_point.stdout }} is {{ item.size_available }} bytes.
       This is less than than the minimum of {{ mongodb_minimum_space }} bytes.
-      Increase the capacity of {{ rdio_user_home_mount_point.stdout }} before proceeding."
-    success_msg: Free space on "{{ rdio_user_home_mount_point.stdout }}" is ok. 
+      Increase the capacity of {{ mosaic_user_home_mount_point.stdout }} before proceeding."
+    success_msg: Free space on "{{ mosaic_user_home_mount_point.stdout }}" is ok. 
     quiet: true
   with_items: "{{ ansible_mounts }}"
   when: 
-    - item.mount == rdio_user_home_mount_point.stdout
+    - item.mount == mosaic_user_home_mount_point.stdout
     - mongodb | bool
 
 - name: Create ~/.ssh directory 
   file:
-    path: "{{ rdio_user_home }}/.ssh"
+    path: "{{ mosaic_user_home }}/.ssh"
     state: directory
     mode: 0700
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
 
 - name: Create SSH Keys
-  command: ssh-keygen -b 4096 -t rsa -N "" -f "{{ rdio_user_home }}/.ssh/id_rsa"
+  command: ssh-keygen -b 4096 -t rsa -N "" -f "{{ mosaic_user_home }}/.ssh/id_rsa"
   args:
-    creates: "{{ rdio_user_home }}/.ssh/id_rsa"
+    creates: "{{ mosaic_user_home }}/.ssh/id_rsa"
   register: create_keys
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
   when: inventory_hostname == groups['rx'][0]
 
 - name: Grab ssh keys
@@ -78,8 +78,8 @@
     dest: files/
     flat: yes
   with_items:
-    - "{{ rdio_user_home }}/.ssh/id_rsa"
-    - "{{ rdio_user_home }}/.ssh/id_rsa.pub"
+    - "{{ mosaic_user_home }}/.ssh/id_rsa"
+    - "{{ mosaic_user_home }}/.ssh/id_rsa.pub"
   when: 
     - inventory_hostname == groups['rx'][0]
     - create_keys is changed
@@ -87,9 +87,9 @@
 - name: Copy SSH keys
   copy:
     src: "files/{{ item.file }}"
-    dest: "{{ rdio_user_home }}/.ssh/{{ item.file }}"
-    owner: "{{ rdio_user }}"
-    group: "{{ rdio_user }}"
+    dest: "{{ mosaic_user_home }}/.ssh/{{ item.file }}"
+    owner: "{{ mosaic_user }}"
+    group: "{{ mosaic_user }}"
     mode: "{{ item.mode }}"
   with_items:
     - { file: 'id_rsa', mode: '0400' }
@@ -97,12 +97,12 @@
 
 - name: Add SSH authorized key
   authorized_key:
-    user: "{{ rdio_user }}"
+    user: "{{ mosaic_user }}"
     state: present
     key: "{{ item }}"
   with_file:
      - files/id_rsa.pub
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
   loop_control:
     label: "Updated authorized_hosts."
 
@@ -111,14 +111,14 @@
     path: ~/.ssh/known_hosts
     mode: 0644
     state: touch
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
 
 - name: Deploy SSH Public Key Template
   template:
     src: known_hosts.j2
-    dest: "{{ rdio_user_home }}/.ssh/known_hosts"
-    owner: "{{ rdio_user }}"
-    group: "{{ rdio_user }}"
+    dest: "{{ mosaic_user_home }}/.ssh/known_hosts"
+    owner: "{{ mosaic_user }}"
+    group: "{{ mosaic_user }}"
     mode: 0644
 
 - name: CentOS/Red Hat - Modify pam limits
@@ -185,65 +185,65 @@
 - name: Deploy RecoverX Node Template
   template:
     src: nodes.j2
-    dest: "{{ rdio_user_home }}/nodes"
-    owner: "{{ rdio_user }}"
-    group: "{{ rdio_user }}"
+    dest: "{{ mosaic_user_home }}/nodes"
+    owner: "{{ mosaic_user }}"
+    group: "{{ mosaic_user }}"
   become: true
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
   when: inventory_hostname == groups['rx'][0]
 
 - name: Detect and register Nodes
   slurp:
-    src: "{{ rdio_user_home }}/nodes"
+    src: "{{ mosaic_user_home }}/nodes"
   register: nodes
   when: inventory_hostname == groups['rx'][0]
 
 - name: Detect existing RecoverX installation
   stat:
-    path: "{{ rdio_installer_directory }}/datosinstall"
-  register: rdio_dir
+    path: "{{ mosaic_installer_directory }}/datosinstall"
+  register: mosaic_dir
   changed_when: False
   ignore_errors: True
 
-- name: Create/verify Installer directory {{ rdio_installer_directory }}
+- name: Create/verify Installer directory {{ mosaic_installer_directory }}
   file:
-    path: "{{ rdio_installer_directory }}"
+    path: "{{ mosaic_installer_directory }}"
     state: directory
     mode: 0700
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
 
-- name: Copy RDIO release file to {{ groups['rx'][0] }} - {{ rdio_install_file }}
+- name: Copy Mosaic release file to {{ groups['rx'][0] }} - {{ mosaic_install_file }}
   unarchive:
-    src: "{{ rdio_install_file }}"
-    dest: "{{ rdio_installer_directory }}/"
-    owner: "{{ rdio_user }}"
-    group: "{{ rdio_user }}"
+    src: "{{ mosaic_install_file }}"
+    dest: "{{ mosaic_installer_directory }}/"
+    owner: "{{ mosaic_user }}"
+    group: "{{ mosaic_user }}"
     list_files: true
   become: true
-  become_user: "{{ rdio_user }}"
+  become_user: "{{ mosaic_user }}"
   register: deploy_files
   when: 
     - inventory_hostname == groups['rx'][0]
-    - not rdio_dir.stat.exists
+    - not mosaic_dir.stat.exists
 
-- name: Install RecoverX - {{ rdio_install_file }}
+- name: Install RecoverX - {{ mosaic_install_file }}
   shell: >
-    ./install_datos
-    -i {{ nodes['content'] | b64decode }}
-    -t {{ rdio_installer_directory }}/datosinstall
+    ./install_datos 
+    -i {{ nodes['content'] | b64decode }} 
+    -t {{ mosaic_installer_directory }}/datosinstall 
     --skip-eula-check
   args:
-    chdir: "{{ rdio_installer_directory }}/{{ deploy_files.files[0] }}"
+    chdir: "{{ mosaic_installer_directory }}/{{ deploy_files.files[0] }}"
   become: true
-  become_user: "{{ rdio_user }}"
-  register: rdio_install
+  become_user: "{{ mosaic_user }}"
+  register: mosaic_install
   when:
-    - not rdio_dir.stat.exists
+    - not mosaic_dir.stat.exists
     - inventory_hostname == groups['rx'][0]
 
 - name: Deploy RecoverX init script
   copy:
-    src: "{{ rdio_installer_directory }}/datosinstall/datos-server"
+    src: "{{ mosaic_installer_directory }}/datosinstall/datos-server"
     dest: /etc/init.d/datos-server
     remote_src: true
     owner: root
@@ -266,7 +266,7 @@
 
 - name: Change permissions of fusermount
   file:
-    path: "{{ rdio_installer_directory }}/datosinstall/lib/fuse/bin/fusermount"
+    path: "{{ mosaic_installer_directory }}/datosinstall/lib/fuse/bin/fusermount"
     owner: root
     mode: "u+s"
   become: true
@@ -293,24 +293,24 @@
 
 - name: Create NFS Mount point
   file:
-    path: "{{ rdio_nfs_mount }}"
-    owner: "{{ rdio_user }}"
-    group: rdio
+    path: "{{ mosaic_nfs_mount }}"
+    owner: "{{ mosaic_user }}"
+    group: mosaic
     state: directory
     mode: 0755
   when: 
-    - rdio_nfs | bool
+    - mosaic_nfs | bool
   become: true
 
 - name: Mount NFS storage
   mount:
-    path: "{{ rdio_nfs_mount }}"
-    src: "{{ rdio_nfs_target }}:{{ rdio_nfs_export }}"
+    path: "{{ mosaic_nfs_mount }}"
+    src: "{{ mosaic_nfs_target }}:{{ mosaic_nfs_export }}"
     fstype: nfs
     opts: nfsvers=3,auto,hard,actimeo=0,lookupcache=none,noac
     state: mounted
   when: 
-    - rdio_nfs | bool
+    - mosaic_nfs | bool
   become: true
 
 - name: Update hosts tables with MongoDB host names

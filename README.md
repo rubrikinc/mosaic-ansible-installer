@@ -9,7 +9,7 @@ Features the following:
 
 # :blue_book: Documentation
 
-Here are some resources to get you started! If you find any challenges from this project are not properly documented or are unclear, please [raise an issue](https://github.com/rubrikinc/rdio-ansible-installer/issues/new/choose) and let us know! This is a fun, safe environment - don't worry if you're a GitHub newbie! :heart:
+Here are some resources to get you started! If you find any challenges from this project are not properly documented or are unclear, please [raise an issue](https://github.com/rubrikinc/mosaic-ansible-installer/issues/new/choose) and let us know! This is a fun, safe environment - don't worry if you're a GitHub newbie! :heart:
 
 * [Quick Start Guide](docs/quick-start.md)
 
@@ -24,27 +24,27 @@ Here are some resources to get you started! If you find any challenges from this
 * Requires the following variables data to be defined for any nodes using the this module:
 
 ```text
-   # RDIO Node settings
+   # Mosaic Node settings
 
-    rdio_user: rdio_user
-    rdio_user_pass: Rubrik123!
-    rdio_user_uid: "2018"
-    rdio_user_home: "/home/{{ rdio_user }}"      # must be on a non-root volume
-    rdio_installer_directory: "{{ rdio_user_home }}"
-    rdio_install_file: datos-3.0.1-p3-190329.tar.gz
-    rdio_nfs: False
-    rdio_nfs_mount: /mnt/datos_target
-    rdio_nfs_export: /exports/datos_data
-    rdio_nfs_target: fs1.dom.local
+    mosaic_user: mosaic_user
+    mosaic_user_pass: Rubrik123!
+    mosaic_user_uid: "2018"
+    mosaic_user_home: "/home/{{ mosaic_user }}"      # must be on a non-root volume
+    mosaic_installer_directory: "{{ mosaic_user_home }}"
+    mosaic_install_file: datos-3.0.1-p3-190329.tar.gz
+    mosaic_nfs: False
+    mosaic_nfs_mount: /mnt/datos_target
+    mosaic_nfs_export: /exports/datos_data
+    mosaic_nfs_target: fs1.dom.local
     mongodb: False
     cassdb_minimum_space: 268435456000          #Value in bytes
     mongodb_minimum_space: 1099511627776        #Value in bytes
 
-    #RDIO Data Source settings
+    #Mosaic Data Source settings
 
-    rdio_app_user: rdio_app_user
-    rdio_app_user_pass: Rubrik123!
-    rdio_app_user_home: /home/{{ rdio_app_user }}
+    mosaic_app_user: mosaic_app_user
+    mosaic_app_user_pass: Rubrik123!
+    mosaic_app_user_home: /home/{{ mosaic_app_user }}
 ```
 
 # :muscle: How You Can Help

@@ -79,6 +79,6 @@
   lineinfile:
     dest: /etc/sudoers
     state: present
-    regexp: '^{{ rdio_user }}'
-    line: '{{ rdio_user }} ALL=NOPASSWD: /bin/chmod, /bin/chown, /sbin/modprobe, /bin/mount, /sbin/sysctl'
+    regexp: '^{{ mosaic_user }}'
+    line: '{{ mosaic_user }} ALL=NOPASSWD: /bin/chmod, /bin/chown, /sbin/modprobe, /bin/mount, /sbin/sysctl'
     validate: 'visudo -cf %s'

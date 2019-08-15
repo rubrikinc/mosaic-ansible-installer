@@ -2,44 +2,44 @@
 
 - name: Add Rubrik DatosIO App User for Cassandra
   user:
-    name: "{{ rdio_app_user }}"
+    name: "{{ mosaic_app_user }}"
     shell: /bin/bash
     groups: cassandra
     append: yes
     state: present
     createhome: yes
-    home: "{{ rdio_app_user_home }}"
+    home: "{{ mosaic_app_user_home }}"
   register: new_app_user
   when: "'cassdb' in group_names"
 
 - name: Add Rubrik DatosIO App User for MongoDB
   user:
-    name: "{{ rdio_app_user }}"
+    name: "{{ mosaic_app_user }}"
     shell: /bin/bash
     groups: mongodb
     append: yes
     state: present
     createhome: yes
-    home: "{{ rdio_app_user_home }}"
+    home: "{{ mosaic_app_user_home }}"
   register: new_app_user
   when: "'mongodb' in group_names"
 
-- name: Ensure that free space on "{{ rdio_app_user_home }}" is grater than 10MB
+- name: Ensure that free space on "{{ mosaic_app_user_home }}" is grater than 10MB
   assert:
     that: mount.size_available < float 10485760
-    msg: Disk space on "{{ rdio_app_user_home }}" is less than 10MB. Increase before performing backups
+    msg: Disk space on "{{ mosaic_app_user_home }}" is less than 10MB. Increase before performing backups
   vars:
-    mount: "{{ ansible_mounts | selectattr('mount','equalto',rdio_app_user_home) | list | first }}"
+    mount: "{{ ansible_mounts | selectattr('mount','equalto',mosaic_app_user_home) | list | first }}"
 
-- name: Set RDIO user password
+- name: Set Mosaic user password
   user:
-    name: "{{ rdio_app_user }}"
-    password: "{{ rdio_app_user_pass | password_hash('sha512') }}"
+    name: "{{ mosaic_app_user }}"
+    password: "{{ mosaic_app_user_pass | password_hash('sha512') }}"
   when: new_app_user is changed
 
 - name: Add SSH authorized key
   authorized_key:
-    user: "{{ rdio_app_user }}"
+    user: "{{ mosaic_app_user }}"
     state: present
     key: "{{ item }}"
   with_file:
@@ -48,9 +48,9 @@
 - name: Copy SSH keys
   copy:
     src: "{{ item.file }}"
-    dest: "{{ rdio_app_user_home }}/.ssh/{{ item.file }}"
-    owner: "{{ rdio_app_user }}"
-    group: "{{ rdio_app_user }}"
+    dest: "{{ mosaic_app_user_home }}/.ssh/{{ item.file }}"
+    owner: "{{ mosaic_app_user }}"
+    group: "{{ mosaic_app_user }}"
     mode: "{{ item.mode }}"
   with_items:
     - { file: 'app_id_rsa', mode: '0400' }
@@ -59,22 +59,22 @@
 - name: Deploy SSH Pubkey Template
   template:
     src: known_hosts.j2
-    dest: "{{ rdio_app_user_home }}/.ssh/known_hosts"
-    owner: "{{ rdio_app_user }}"
-    group: "{{ rdio_app_user }}"
+    dest: "{{ mosaic_app_user_home }}/.ssh/known_hosts"
+    owner: "{{ mosaic_app_user }}"
+    group: "{{ mosaic_app_user }}"
     mode: 0644
 
 - name: Allow Datos IO user to have passwordless sudo
   lineinfile:
     dest: /etc/sudoers
     state: present
-    regexp: '{{ rdio_app_user }}'
-    line: '^{{ rdio_app_user }} ALL=NOPASSWD: ALL'
+    regexp: '{{ mosaic_app_user }}'
+    line: '^{{ mosaic_app_user }} ALL=NOPASSWD: ALL'
     validate: 'visudo -cf %s'
 
-- name: Set permissions on "{{ rdio_app_user_home }}"
+- name: Set permissions on "{{ mosaic_app_user_home }}"
   file:
-    dest: "{{ rdio_app_user_home }}"
+    dest: "{{ mosaic_app_user_home }}"
     mode: 0755
     recurse: yes
   become: yes
