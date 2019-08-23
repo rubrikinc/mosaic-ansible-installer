@@ -1,10 +1,10 @@
 ---
 
-- name: Include RecoverX OS specific tasks
+- name: Include Mosaic OS specific tasks
   include_tasks: "rx-os-prep.yml"
   tags: rxosprep
 
-- name: Include RecoverX specific tasks
+- name: Include Mosaic specific tasks
   include_tasks: "rx-install.yml"
   when: "'rx' in group_names"
   tags: rx

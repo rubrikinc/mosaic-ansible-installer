@@ -3,9 +3,9 @@ ansible_connection=ssh
 ansible_user=root
 
 [rx]
-rdio-1 ansible_host=192.168.1.10
-rdio-2 ansible_host=192.168.1.11
-rdio-3 ansible_host=192.168.1.12
+mosaic-1 ansible_host=192.168.1.10
+mosaic-2 ansible_host=192.168.1.11
+mosaic-3 ansible_host=192.168.1.12
 
 [cassdb]
 cassdb-1 ansible_host=192.168.1.20

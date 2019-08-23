@@ -1,11 +1,11 @@
-# Rubrik Datos IO Ansible Deployment
+# Rubrik Mosaic Ansible Deployment
 
-Rubrik Datos IO Ansible role for deploying RecoverX.
+Rubrik Mosaic Ansible role for deploying Mosaic.
 
 Features the following:
 
-* Configuration of new, customer provided, Datos IO nodes
-* Installation of the Datos IO software.
+* Configuration of new, customer provided, Mosaic nodes
+* Installation of the Mosaic software.
 
 # :blue_book: Documentation
 

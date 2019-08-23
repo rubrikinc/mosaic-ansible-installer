@@ -1,12 +1,12 @@
 ---
  
-- name: Add Rubrik Datos IO group
+- name: Add Rubrik Mosaic group
   group:
     name: "mosaic"
     state: present
   register: new_group
 
-- name: Add Rubrik DatosIO User
+- name: Add Rubrik Mosaic User
   user:
     name: "{{ mosaic_user }}"
     shell: /bin/bash
@@ -182,7 +182,7 @@
     - '* soft nproc 64000'
   when: ansible_os_family == 'RedHat'
 
-- name: Deploy RecoverX Node Template
+- name: Deploy Mosaic Node Template
   template:
     src: nodes.j2
     dest: "{{ mosaic_user_home }}/nodes"
@@ -198,7 +198,7 @@
   register: nodes
   when: inventory_hostname == groups['rx'][0]
 
-- name: Detect existing RecoverX installation
+- name: Detect existing Mosaic installation
   stat:
     path: "{{ mosaic_installer_directory }}/datosinstall"
   register: mosaic_dir
@@ -226,7 +226,7 @@
     - inventory_hostname == groups['rx'][0]
     - not mosaic_dir.stat.exists
 
-- name: Install RecoverX - {{ mosaic_install_file }}
+- name: Install Mosaic - {{ mosaic_install_file }}
   shell: >
     ./install_datos 
     -i {{ nodes['content'] | b64decode | trim }} 
@@ -241,7 +241,7 @@
     - not mosaic_dir.stat.exists
     - inventory_hostname == groups['rx'][0]
 
-- name: Deploy RecoverX init script
+- name: Deploy Mosaic init script
   copy:
     src: "{{ mosaic_installer_directory }}/datosinstall/datos-server"
     dest: /etc/init.d/datos-server
@@ -250,13 +250,13 @@
     group: root
     mode: 0755
 
-- name: Enable RecoverX service
+- name: Enable Mosaic service
   service:
     name: datos-server
     enabled: yes
     state: started
 
-- name: Initialize RecoverX subsystem
+- name: Initialize Mosaic subsystem
   file:
     path: /var/lock/subsys/datos-server
     owner: root
@@ -316,14 +316,14 @@
 - name: Update hosts tables with MongoDB host names
   debug:
     msg: | 
-      -- Manual Step -- [For MongoDB Only] MongoDB node host names need to be resolvable from the Rubrik Datos IO server. 
+      -- Manual Step -- [For MongoDB Only] MongoDB node host names need to be resolvable from the Rubrik Mosaic server. 
       To do so, connect to the config server and get host names of all MongoDB instances in the MongoDB cluster.
 
       $mongo --host <config_ip> --port <config_port>
       config:PRIMARY> use config
       config:PRIMARY> db.mongos.find() //the output of this command will show the mongos hostname and associated IP
       
-      Next, on Rubrik Datos IO server, add a hostname entry for each mongos with its hostname and IP address from above.
+      Next, on Rubrik Mosaic server, add a hostname entry for each mongos with its hostname and IP address from above.
   when: 
     - mongodb | bool
   run_once: true

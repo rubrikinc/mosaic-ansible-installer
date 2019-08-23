@@ -1,6 +1,6 @@
 ---
 
-- name: Add Rubrik DatosIO App User for Cassandra
+- name: Add Rubrik Mosaic App User for Cassandra
   user:
     name: "{{ mosaic_app_user }}"
     shell: /bin/bash
@@ -12,7 +12,7 @@
   register: new_app_user
   when: "'cassdb' in group_names"
 
-- name: Add Rubrik DatosIO App User for MongoDB
+- name: Add Rubrik Mosaic App User for MongoDB
   user:
     name: "{{ mosaic_app_user }}"
     shell: /bin/bash
@@ -64,7 +64,7 @@
     group: "{{ mosaic_app_user }}"
     mode: 0644
 
-- name: Allow Datos IO user to have passwordless sudo
+- name: Allow Mosaic user to have passwordless sudo
   lineinfile:
     dest: /etc/sudoers
     state: present
